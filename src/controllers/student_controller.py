@@ -5,6 +5,11 @@ class StudentController:
         self.student_service = student_service
 
     def create_student(self, student_data):
+        required_fields = ["id", "name", "usn", "mobile_number", "semester", "parents_number", "branch"]
+        for field in required_fields:
+            if field not in student_data:
+                return jsonify({"error": f"{field} is required"}), 400
+
         result, status_code = self.student_service.create_student(student_data)
         return jsonify(result), status_code
 

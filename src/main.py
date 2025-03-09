@@ -6,6 +6,8 @@ from controllers.student_controller import StudentController
 from models.student import Student
 from dotenv import load_dotenv
 import os
+import pandas as pd
+from datetime import datetime
 
 load_dotenv()  # Load environment variables from .env file
 
@@ -43,6 +45,31 @@ def delete_student(student_id):
 @app.route('/students', methods=['GET'])
 def get_all_students():
     return student_controller.get_all_students()
+
+@app.route('/<branch>/<semester>/id', methods=['POST'])
+def receive_student_id(branch, semester):
+    data = request.json
+    student_id = data.get('student_id')
+    if not student_id:
+        return {"error": "Student ID is required"}, 400
+
+    student = student_controller.get_student(student_id)
+    if student[1] == 200:  # Check if student exists
+        usn = student[0].get('usn')
+        if usn:
+            # Create or update the Excel sheet
+            filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".xlsx"
+            if os.path.exists(filename):
+                df = pd.read_excel(filename)
+                df = df.append({"USN": usn}, ignore_index=True)
+            else:
+                df = pd.DataFrame([{"USN": usn}])
+            df.to_excel(filename, index=False)
+            return {"message": "Student ID received and USN recorded successfully"}, 200
+        else:
+            return {"error": "USN not found for the student"}, 404
+    else:
+        return {"error": "Student not found"}, 404
 
 if __name__ == '__main__':
     app.run(debug=True)
